@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#031F33">
+<title>Share your photos · 830 Productions</title>
+<link rel="icon" href="assets/reel-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .flow { display: grid; gap: 24px; max-width: 640px; }
+
+  /* One step on screen at a time: choose → sending → done */
+  .step { display: none; }
+  .flow[data-state="choose"] .step.choose,
+  .flow[data-state="sending"] .step.sending,
+  .flow[data-state="done"] .step.done { display: grid; animation: fade-in var(--dur-base) var(--ease-fade); }
+  .flow[data-state="choose"] .tray { display: none; }
+
+  .step.choose { gap: 24px; }
+  .pick {
+    display: grid; justify-items: center; gap: 16px; text-align: center;
+    padding: clamp(32px, 7vw, 48px) 24px; cursor: pointer;
+    outline: 1px solid transparent; outline-offset: -1px;
+    transition: background var(--dur-fast) var(--ease-fade), outline-color var(--dur-fast);
+  }
+  .pick svg { width: 36px; height: 36px; color: var(--haze); stroke-width: 1.5; }
+  .pick:hover .btn { background: var(--white); border-color: var(--white); }
+  .pick.over { background: var(--studio); outline-color: var(--ice); }
+  .flow:has(#files:focus-visible) .pick { outline: 2px solid var(--steel); outline-offset: 3px; }
+  .pick .note { color: var(--ice); }
+  .pick .desk { display: none; }
+  @media (hover: hover) and (pointer: fine) { .pick .desk { display: inline; } .pick .touch { display: none; } }
+
+  .step.sending { gap: 18px; }
+  .progress { display: flex; align-items: center; gap: 16px; }
+  .progress img { width: 40px; height: 40px; flex: none; animation: reel-spin var(--dur-reel) linear infinite; }
+  .progress p { margin: 0; }
+  .progress .count { font: 500 22px/1.2 var(--font-display); color: var(--white); }
+  .meter { height: 4px; background: var(--harbor); overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--haze); transition: width var(--dur-base) var(--ease-cut); }
+  .step.sending .btn { justify-self: start; }
+
+  .step.done { gap: 14px; padding: clamp(24px, 5vw, 36px); scroll-margin-top: 120px; }
+  .step.done:focus { outline: none; }
+  .step.done p { margin: 0; }
+  .step.done .btn-row { margin-top: 10px; }
+
+  .tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+  .tile { position: relative; aspect-ratio: 1; background: var(--harbor); overflow: hidden; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; opacity: .4; transition: opacity var(--dur-slow) var(--ease-cut); }
+  .tile.done img { opacity: 1; }
+  .tile b {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 6px;
+    font: 600 9px/1.4 var(--font-display); letter-spacing: .2em; text-transform: uppercase;
+    background: var(--midnight-70); color: var(--ice);
+  }
+  .tile.done b { display: none; }
+  .tile.error b { background: var(--ice); color: var(--midnight); }
+  .tile.error img { opacity: .2; }
+
+  .missing { padding: clamp(48px, 9vw, 96px) 0 0; max-width: 560px; }
+  .missing .btn { margin-top: 32px; }
+</style>
+</head>
+<body>
+<img class="reel-watermark" src="assets/reel-white.png" alt="">
+
+<header class="site-header">
+  <div class="stripe-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="bar">
+    <a class="brand" href="https://830productions.com"><img src="assets/logo-white.png" alt="830 Productions" width="120" height="72"></a>
+    <nav class="site-nav" aria-label="Event">
+      <a id="navUpload" href="#" aria-current="page">Add photos</a>
+      <a id="navGallery" href="#" hidden>Gallery</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" id="hero">
+    <p class="eyebrow rise">Behind the scenes</p>
+    <h1 class="title rise d1" id="eventTitle">Share your photos</h1>
+    <p class="title-meta" id="eventMeta" hidden></p>
+    <p class="lede rise d2">You caught moments we didn’t. Add them here and they go straight to the couple’s collection.</p>
+  </section>
+
+  <section class="flow" id="flow" data-state="choose" aria-label="Add your photos">
+    <input class="visually-hidden" id="files" type="file" accept="image/*" multiple>
+
+    <div class="step choose">
+      <div class="field">
+        <label for="who">Your name · optional</label>
+        <input id="who" type="text" autocomplete="name" maxlength="40" placeholder="So they know who to thank">
+      </div>
+      <label class="pick panel-harbor" id="drop" for="files">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        <span class="btn lg">Choose photos</span>
+        <span class="note"><span class="touch">Pick as many as you like from your camera roll.</span><span class="desk">Pick as many as you like, or drop them anywhere on this page.</span></span>
+      </label>
+    </div>
+
+    <div class="step sending">
+      <div class="progress" aria-live="polite">
+        <img src="assets/reel-white.png" alt="">
+        <div>
+          <p class="count" id="statusText">Getting ready</p>
+          <p class="note">Keep this page open until we’re wrapped.</p>
+        </div>
+      </div>
+      <div class="meter"><i id="bar"></i></div>
+      <button class="btn outline" id="moreNow" type="button">Add more</button>
+    </div>
+
+    <div class="step done panel-ice" id="after" tabindex="-1" role="status">
+      <h2 class="heading" id="afterTitle">Wrapped. Thank you.</h2>
+      <p id="afterText">Your photos are in.</p>
+      <div class="btn-row stack">
+        <button class="btn" id="retry" type="button" hidden>Try again</button>
+        <a class="btn" id="afterGallery" href="#" hidden>See everyone’s photos</a>
+        <button class="btn" id="more" type="button">Add more</button>
+      </div>
+    </div>
+
+    <div class="tray" id="tray" aria-label="Your photos"></div>
+  </section>
+
+  <section class="missing" id="missing" hidden>
+    <p class="eyebrow">Link not found</p>
+    <h1 class="title sm">This one didn’t load.</h1>
+    <p class="lede" id="missingText">Check the QR code or link you were given, or ask the couple for a fresh one.</p>
+    <a class="btn" href="./">Enter an event code</a>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <span class="tagline">Every frame matters.</span>
+  <a href="https://830productions.com">830productions.com</a>
+</footer>
+
+<script src="config.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const S = window.Site830, C = S.config, event = S.event;
+  const $ = id => document.getElementById(id);
+  const flow = $('flow'), who = $('who'), input = $('files'), drop = $('drop');
+  try { who.value = localStorage.getItem('830-uploader') || ''; } catch (e) {}
+
+  function missing(msg) {
+    $('hero').hidden = true; flow.hidden = true; $('missing').hidden = false;
+    $('navUpload').hidden = true;
+    if (msg) $('missingText').textContent = msg + ' Check the QR code or link you were given.';
+  }
+  if (!event) { missing(); return; }
+
+  let hasGallery = false;
+  $('navUpload').href = S.link('upload.html');
+  S.api('info')
+    .then(d => {
+      if (!d.ok) return missing(d.error);
+      S.showTitle(d.title, $('eventTitle'), $('eventMeta'));
+      document.title = `${d.title} · Share your photos`;
+      if (d.gallery) {
+        hasGallery = true;
+        $('navGallery').href = $('afterGallery').href = S.link('gallery.html');
+        $('navGallery').hidden = false;
+      }
+    })
+    .catch(() => {}); // keep the page usable even if the title lookup is slow
+
+  // ---------- Picking ----------
+  input.addEventListener('change', e => { start(e.target.files); e.target.value = ''; });
+  $('more').addEventListener('click', () => input.click());
+  $('moreNow').addEventListener('click', () => input.click());
+  $('retry').addEventListener('click', retry);
+
+  // Drag and drop anywhere on the page (desktop)
+  const dragging = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  ['dragenter', 'dragover'].forEach(t => addEventListener(t, e => { if (dragging(e)) { e.preventDefault(); drop.classList.add('over'); } }));
+  ['dragleave', 'drop'].forEach(t => addEventListener(t, () => drop.classList.remove('over')));
+  addEventListener('drop', e => { if (dragging(e)) { e.preventDefault(); start(e.dataTransfer.files); } });
+
+  // ---------- Queue ----------
+  const jobs = [];
+  let active = 0, wakeLock = null;
+  const count = state => jobs.filter(j => j.state === state).length;
+  const busy = () => active > 0 || count('waiting') > 0;
+
+  addEventListener('beforeunload', e => { if (busy()) { e.preventDefault(); e.returnValue = ''; } });
+
+  function start(fileList) {
+    const files = [...fileList].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
+    if (!files.length) return;
+    try { localStorage.setItem('830-uploader', who.value.trim()); } catch (e) {}
+    files.forEach(file => {
+      const job = { file, state: 'waiting', tile: addTile() };
+      jobs.push(job); paint(job);
+    });
+    run();
+  }
+
+  function retry() {
+    jobs.forEach(j => { if (j.state === 'error') { j.state = 'waiting'; paint(j); } });
+    run();
+  }
+
+  function run() {
+    flow.dataset.state = 'sending';
+    if (!wakeLock && navigator.wakeLock) navigator.wakeLock.request('screen').then(l => { wakeLock = l; }).catch(() => {});
+    update(); pump();
+  }
+
+  function pump() {
+    const limit = C.PARALLEL || 3;
+    while (active < limit) {
+      const job = jobs.find(j => j.state === 'waiting');
+      if (!job) break;
+      active++; job.state = 'sending'; paint(job);
+      send(job).then(ok => {
+        job.state = ok ? 'done' : 'error'; paint(job);
+        active--; update(); pump();
+      });
+    }
+    if (!busy() && jobs.length) finish();
+  }
+
+  async function send(job) {
+    try {
+      const payload = await prepare(job);
+      let lastErr;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await fetch(C.SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids a CORS preflight
+            body: JSON.stringify({ event, uploader: who.value.trim(), ...payload })
+          });
+          const d = await r.json();
+          if (d.ok) return true;
+          lastErr = new Error(d.error || 'Upload failed');
+          break; // the server said no; sending the same file again won't change that
+        } catch (e) {
+          lastErr = e;
+          await new Promise(res => setTimeout(res, 1200 * (attempt + 1)));
+        }
+      }
+      throw lastErr;
+    } catch (e) {
+      console.warn(job.file.name, e);
+      return false;
+    }
+  }
+
+  // Resize and re-encode in the browser so phone photos send fast.
+  async function prepare(job) {
+    const file = job.file;
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await loadImage(url);
+      const longest = Math.max(img.naturalWidth, img.naturalHeight);
+      if (!job.thumbed) { job.thumbed = true; thumb(job, img, longest); }
+      const full = draw(img, Math.min(1, C.MAX_EDGE / longest));
+      const blob = await toBlob(full, C.JPEG_QUALITY);
+      full.width = full.height = 0; // hand the memory back straight away
+      if (!blob) throw new Error('encode failed');
+      return { data: await toBase64(blob), mimeType: 'image/jpeg', name: file.name.replace(/\.[^.]+$/, '') + '.jpg' };
+    } catch (e) {
+      // Browser can't decode it (e.g. HEIC on some Android/desktop browsers): send the original.
+      const type = file.type || (/\.heif$/i.test(file.name) ? 'image/heif' : 'image/heic');
+      return { data: await toBase64(file), mimeType: type, name: file.name };
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function draw(img, scale) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  // Small preview for the tray, so a big batch doesn't hold every full-size photo in memory.
+  function thumb(job, img, longest) {
+    const small = draw(img, Math.min(1, 280 / longest));
+    toBlob(small, 0.7).then(blob => {
+      if (!blob) return;
+      const el = document.createElement('img');
+      el.alt = ''; el.src = URL.createObjectURL(blob);
+      job.tile.prepend(el);
+    });
+  }
+
+  const toBlob = (canvas, quality) => new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+  const loadImage = url => new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img); img.onerror = rej; img.src = url;
+  });
+  const toBase64 = blob => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+
+  // ---------- Display ----------
+  function addTile() {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.append(document.createElement('b'));
+    $('tray').append(tile);
+    return tile;
+  }
+
+  const LABELS = { waiting: 'Waiting', sending: 'Sending', done: 'Sent', error: 'Not sent' };
+  function paint(job) {
+    job.tile.className = 'tile ' + job.state;
+    job.tile.querySelector('b').textContent = LABELS[job.state];
+  }
+
+  function update() {
+    const total = jobs.length, settled = count('done') + count('error');
+    $('bar').style.width = (total ? Math.round(settled / total * 100) : 0) + '%';
+    $('statusText').textContent = `Sending ${Math.min(settled + 1, total)} of ${total}`;
+  }
+
+  function finish() {
+    const sent = count('done'), failed = count('error');
+    const photos = n => `${n} ${n === 1 ? 'photo' : 'photos'}`;
+    if (!failed) {
+      $('afterTitle').textContent = 'Wrapped. Thank you.';
+      $('afterText').textContent = `${photos(sent)} ${sent === 1 ? 'is' : 'are'} in the couple’s collection.`;
+    } else if (sent) {
+      $('afterTitle').textContent = 'Nearly wrapped.';
+      $('afterText').textContent = `${photos(sent)} ${sent === 1 ? 'is' : 'are'} in. ${failed} didn’t go through — try ${failed === 1 ? 'it' : 'those'} again.`;
+    } else {
+      $('afterTitle').textContent = 'That didn’t go through.';
+      $('afterText').textContent = 'Check your signal, then try again. Your photos are still here.';
+    }
+    // One primary action: fix what failed, else see the gallery, else add more.
+    const showGallery = hasGallery && sent > 0;
+    $('retry').hidden = !failed;
+    $('afterGallery').hidden = !showGallery;
+    $('afterGallery').classList.toggle('outline', failed > 0);
+    $('more').classList.toggle('outline', failed > 0 || showGallery);
+
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    flow.dataset.state = 'done';
+    $('after').focus({ preventScroll: true });
+    $('after').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+})();
+</script>
+</body>
+</html>

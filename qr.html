@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QR card maker · 830 Productions</title>
+<link rel="icon" href="assets/reel-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .tool { display: grid; grid-template-columns: minmax(260px, 380px) 1fr; gap: clamp(32px, 6vw, 72px); padding: clamp(36px, 6vw, 72px) 0 0; align-items: start; }
+  @media (max-width: 820px) { .tool { grid-template-columns: 1fr; } }
+  .controls { display: grid; gap: 22px; }
+  .controls .lede { margin-top: 14px; }
+  .check { margin-top: -12px; min-height: 1.4em; }
+  .link-box { display: grid; gap: 8px; padding: 16px; }
+  .link-box code { font: 400 15px/1.4 var(--font-text); color: var(--white); word-break: break-all; }
+  .link-box .links { display: flex; gap: 20px; flex-wrap: wrap; font: 600 11px/1.2 var(--font-display); letter-spacing: .28em; text-transform: uppercase; }
+  .link-box .links a, .link-box .links button { color: var(--haze); text-decoration: none; background: none; border: 0; padding: 4px 0; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+  .link-box .links a:hover, .link-box .links button:hover { color: var(--white); }
+  .preview { display: grid; gap: 14px; justify-items: start; }
+
+  /* The printable card: 5x7 in, Ice ground, Midnight type */
+  .card {
+    width: 100%; max-width: 500px; aspect-ratio: 5 / 7; background: var(--ice); color: var(--midnight);
+    display: grid; grid-template-rows: auto 1fr auto; position: relative; overflow: hidden;
+  }
+  .card .stripe-bar { height: 10px; }
+  .card-body { display: grid; align-content: center; justify-items: center; text-align: center; gap: 18px; padding: 8% 10%; }
+  .card-body .eyebrow { color: var(--studio); margin: 0; }
+  .card .stripe-bar span:nth-child(1) { background: var(--harbor); }
+  .card-title { font: 300 clamp(26px, 5vw, 38px)/1.1 var(--font-display); margin: 0; text-wrap: balance; }
+  .card-date { font: 600 13px/1 var(--font-display); letter-spacing: .32em; text-transform: uppercase; color: var(--studio); margin: -6px 0 4px; }
+  .card-date:empty { display: none; }
+  .card-copy { font: italic 19px/1.45 var(--font-text); margin: 0; max-width: 26ch; }
+  #qr { padding: 14px; background: var(--white); }
+  #qr img, #qr canvas { width: 200px !important; height: 200px !important; }
+  .card-foot { display: flex; justify-content: center; padding: 0 0 7%; }
+  .card-foot img { width: 120px; }
+
+  @media print {
+    @page { size: 5in 7in; margin: 0; }
+    body { background: #fff; }
+    .site-header, .site-footer, .controls, .preview > .label { display: none !important; }
+    .tool { padding: 0; display: block; }
+    .wrap { padding: 0; max-width: none; }
+    .card { width: 5in; height: 7in; max-width: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="stripe-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="bar">
+    <a class="brand" href="./"><img src="assets/logo-white.png" alt="830 Productions" width="120" height="72"></a>
+    <nav class="site-nav" aria-label="Site"><span>Studio · Table cards</span></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="tool">
+    <div class="controls">
+      <div>
+        <p class="eyebrow">For the studio</p>
+        <h1 class="title sm">Table card</h1>
+        <p class="lede">Three fields, one card. Make the Drive folder first, then print.</p>
+      </div>
+      <div class="field">
+        <label for="slug">01 — Event folder name</label>
+        <input id="slug" placeholder="smith-wedding" autocapitalize="off" autocomplete="off" spellcheck="false">
+      </div>
+      <p class="note check" id="check" role="status"></p>
+      <div class="field">
+        <label for="names">02 — Names on the card</label>
+        <input id="names" placeholder="Sarah &amp; Mike" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="date">03 — Date</label>
+        <input id="date" placeholder="June 14, 2027" autocomplete="off">
+      </div>
+      <div class="link-box panel-harbor">
+        <span class="label">The code opens</span>
+        <code id="link"></code>
+        <div class="links">
+          <button id="copy" type="button">Copy link</button>
+          <a id="openUpload" target="_blank" rel="noopener">Test upload</a>
+          <a id="openGallery" target="_blank" rel="noopener">Gallery</a>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="cardPng" type="button">Download card</button>
+        <button class="btn outline" id="png" type="button">QR only</button>
+        <button class="btn outline" id="print" type="button">Print</button>
+      </div>
+    </div>
+
+    <div class="preview">
+      <span class="label">Preview · 5 × 7 in</span>
+    <div class="card" id="card">
+      <div class="stripe-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="card-body">
+        <h2 class="card-title" id="cardTitle">Sarah &amp; Mike</h2>
+        <p class="card-date" id="cardDate"></p>
+        <div id="qr"></div>
+        <p class="card-copy">Scan with your phone camera to share the photos you took today.</p>
+      </div>
+      <div class="card-foot"><img src="assets/logo-midnight.png" alt="830 Productions"></div>
+    </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"><span class="tagline">Every frame matters.</span><a href="./">Guest photos home</a></footer>
+
+<script src="config.js"></script>
+<script src="site.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const S = window.Site830, slugify = S.slugify;
+  const pageUrl = (page, slug) => { const u = new URL(page, location.href); u.search = '?event=' + slug; u.hash = ''; return u.href; };
+  const params = new URLSearchParams(location.search);
+  $('slug').value = params.get('event') || '';
+  $('names').value = params.get('names') || '';
+  $('date').value = params.get('date') || '';
+  const qr = new QRCode($('qr'), { width: 400, height: 400, colorDark: '#031F33', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
+
+  function render() {
+    const slug = slugify($('slug').value) || 'your-event';
+    const url = pageUrl('upload.html', slug);
+    $('link').textContent = url;
+    $('openUpload').href = url; $('openGallery').href = pageUrl('gallery.html', slug);
+    $('cardTitle').textContent = $('names').value.trim() || 'Share your photos';
+    $('cardDate').textContent = $('date').value.trim();
+    qr.makeCode(url);
+  }
+  $('slug').addEventListener('input', () => { render(); check(); });
+
+  // Confirm the Drive folder exists before anything gets printed.
+  let timer, asked = '';
+  function check() {
+    clearTimeout(timer);
+    const slug = slugify($('slug').value), out = $('check');
+    asked = slug;
+    if (!slug) { out.textContent = ''; return; }
+    out.textContent = 'Checking Drive…';
+    timer = setTimeout(async () => {
+      let text;
+      try {
+        const d = await S.api('info', slug);
+        text = d.ok ? `Folder found. Guests will see “${d.title}”.` : 'No folder with that name in Drive yet. Guests would see an error.';
+      } catch (e) { text = 'Couldn’t reach the backend to check this folder.'; }
+      if (asked === slug) out.textContent = text;
+    }, 500);
+  }
+  $('copy').onclick = async () => {
+    try { await navigator.clipboard.writeText($('link').textContent); $('copy').textContent = 'Copied'; }
+    catch (e) { $('copy').textContent = 'Copy failed'; }
+    setTimeout(() => { $('copy').textContent = 'Copy link'; }, 1600);
+  };
+  $('names').addEventListener('input', render);
+  $('date').addEventListener('input', render);
+  $('print').onclick = () => window.print();
+  const fileBase = () => slugify($('slug').value) || 'event';
+  function save(canvas, name) {
+    const a = document.createElement('a');
+    a.download = name; a.href = canvas.toDataURL('image/png'); a.click();
+  }
+
+  // QR only: Midnight on white with a quiet zone, 1200px square
+  $('png').onclick = () => {
+    const src = $('qr').querySelector('canvas');
+    const c = document.createElement('canvas'); c.width = c.height = 1200;
+    const x = c.getContext('2d');
+    x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, 1200, 1200);
+    x.imageSmoothingEnabled = false;
+    x.drawImage(src, 100, 100, 1000, 1000);
+    save(c, `${fileBase()}-qr.png`);
+  };
+
+  // Full card: 5x7 in at 300 dpi (1500 x 2100), drawn to match the preview
+  function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+  function wrap(x, text, maxW) {
+    const words = text.split(' '), lines = []; let line = '';
+    words.forEach(w => { const t = line ? line + ' ' + w : w; if (x.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; });
+    if (line) lines.push(line); return lines;
+  }
+  function tracked(x, text, cx, y, spacing) {
+    const chars = [...text]; const widths = chars.map(ch => x.measureText(ch).width);
+    const total = widths.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
+    let pos = cx - total / 2; x.textAlign = 'left';
+    chars.forEach((ch, i) => { x.fillText(ch, pos, y); pos += widths[i] + spacing; });
+    x.textAlign = 'center';
+  }
+  $('cardPng').onclick = async () => {
+    await document.fonts.ready;
+    const W = 1500, H = 2100, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = '#E7F4FD'; x.fillRect(0, 0, W, H);
+    ['#123852', '#315D7D', '#5D89A7', '#98BAD2'].forEach((col, i) => { x.fillStyle = col; x.fillRect(i * W / 4, 0, W / 4 + 1, 30); });
+    x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+
+    const names = $('names').value.trim() || 'Share your photos';
+    const date = $('date').value.trim().toUpperCase();
+    x.fillStyle = '#031F33';
+    x.font = '300 112px Futura, Jost, sans-serif';
+    const nameLines = wrap(x, names, W * 0.8);
+    let y = 400;
+    nameLines.forEach(l => { x.fillText(l, W / 2, y); y += 124; });
+    if (date) { x.fillStyle = '#315D7D'; x.font = '600 40px Futura, Jost, sans-serif'; tracked(x, date, W / 2, y + 10, 13); y += 60; }
+
+    const qrSize = 640, qrPad = 44, qrTop = y + 50;
+    x.fillStyle = '#FFFFFF'; x.fillRect((W - qrSize) / 2 - qrPad, qrTop, qrSize + qrPad * 2, qrSize + qrPad * 2);
+    x.imageSmoothingEnabled = false;
+    x.drawImage($('qr').querySelector('canvas'), (W - qrSize) / 2, qrTop + qrPad, qrSize, qrSize);
+    x.imageSmoothingEnabled = true;
+
+    x.fillStyle = '#031F33'; x.font = 'italic 58px "Minion Pro", "Crimson Pro", Georgia, serif';
+    let cy = qrTop + qrSize + qrPad * 2 + 110;
+    wrap(x, 'Scan with your phone camera to share the photos you took today.', W * 0.66).forEach(l => { x.fillText(l, W / 2, cy); cy += 76; });
+
+    try {
+      const logo = await loadImg('assets/logo-midnight.png');
+      const lw = 380, lh = lw * logo.height / logo.width;
+      x.drawImage(logo, (W - lw) / 2, H - lh - 130, lw, lh);
+    } catch (e) {}
+    save(c, `${fileBase()}-table-card.png`);
+  };
+  render(); check();
+})();
+</script>
+</body>
+</html>

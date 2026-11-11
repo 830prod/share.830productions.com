@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#031F33">
+<title>Guest photos · 830 Productions</title>
+<meta name="description" content="Share the photos you took at the event. They go straight to the couple’s collection.">
+<script>
+  // A link like …/?event=smith-wedding goes straight to that event’s upload page.
+  (function () {
+    var e = new URLSearchParams(location.search).get('event');
+    if (e) location.replace('upload.html?event=' + encodeURIComponent(e));
+  })();
+</script>
+<link rel="icon" href="assets/reel-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .find { display: grid; grid-template-columns: minmax(0, 360px) auto; gap: 12px; align-items: end; margin-top: 36px; max-width: 560px; }
+  .find .note { grid-column: 1 / -1; min-height: 1.4em; }
+  @media (max-width: 520px) { .find { grid-template-columns: 1fr; } }
+
+  .steps {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(28px, 5vw, 56px);
+    padding: clamp(36px, 6vw, 64px) 0 0; margin-top: clamp(20px, 4vw, 40px);
+    border-top: 1px solid var(--border-on-dark); list-style: none; padding-left: 0;
+  }
+  .steps .num { font: 300 56px/1 var(--font-display); color: var(--haze); }
+  .steps h2 { font: 500 24px/1.2 var(--font-display); color: var(--white); margin: 16px 0 10px; }
+  .steps p { margin: 0; font-size: 18px; max-width: 30ch; }
+  @media (max-width: 760px) {
+    .steps { grid-template-columns: 1fr; }
+    .steps li { display: grid; grid-template-columns: 72px 1fr; column-gap: 8px; align-items: start; }
+    .steps .num { font-size: 44px; grid-row: span 2; }
+    .steps h2 { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<img class="reel-watermark" src="assets/reel-white.png" alt="">
+
+<header class="site-header">
+  <div class="stripe-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="bar">
+    <a class="brand" href="https://830productions.com"><img src="assets/logo-white.png" alt="830 Productions" width="120" height="72"></a>
+    <nav class="site-nav" aria-label="Site"><span>Guest photos</span></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <p class="eyebrow rise">Behind the scenes</p>
+    <h1 class="title rise d1">You caught moments we didn’t.</h1>
+    <p class="lede rise d2">Scan the code on your table to share your photos. No code to hand? Enter the event name from your card.</p>
+
+    <form class="find rise d2" id="find" novalidate>
+      <div class="field">
+        <label for="code">Event code</label>
+        <input id="code" name="event" placeholder="smith-wedding" autocapitalize="off" autocomplete="off" spellcheck="false" enterkeyhint="go">
+      </div>
+      <button class="btn" id="go" type="submit">Find the event</button>
+      <p class="note" id="msg" role="status"></p>
+    </form>
+  </section>
+
+  <ol class="steps" aria-label="How it works">
+    <li>
+      <div class="num" aria-hidden="true">01</div>
+      <h2>Scan</h2>
+      <p>Point your phone camera at the card on your table. No app, no account.</p>
+    </li>
+    <li>
+      <div class="num" aria-hidden="true">02</div>
+      <h2>Choose</h2>
+      <p>Pick as many photos as you like. They send in the background while you get back to the party.</p>
+    </li>
+    <li>
+      <div class="num" aria-hidden="true">03</div>
+      <h2>Now showing</h2>
+      <p>Everything lands in one gallery for the couple, alongside what everyone else caught.</p>
+    </li>
+  </ol>
+</main>
+
+<footer class="site-footer">
+  <span class="tagline">Every frame matters.</span>
+  <span><a href="qr.html">Studio · Table cards</a></span>
+  <a href="https://830productions.com">830productions.com</a>
+</footer>
+
+<script src="config.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const S = window.Site830;
+  const form = document.getElementById('find'), input = document.getElementById('code');
+  const msg = document.getElementById('msg'), go = document.getElementById('go');
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const slug = S.slugify(input.value);
+    if (!slug) { msg.textContent = 'Type the event name from your card.'; input.focus(); return; }
+    go.disabled = true; msg.textContent = 'Looking for it…';
+    try {
+      const d = await S.api('info', slug);
+      if (d.ok) { location.href = S.link('upload.html', slug); return; }
+      msg.textContent = 'We couldn’t find that one. Check the spelling on your card.';
+    } catch (err) {
+      msg.textContent = 'That didn’t load. Check your signal and try again.';
+    }
+    go.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>
