@@ -63,5 +63,6 @@ Your links:
 - **iPhones.** Safari converts HEIC to JPEG automatically. Browsers that can't read a file send the original instead.
 - **Gallery privacy.** Anyone with the gallery link can view it, and uploaded files are set to "anyone with the link can view" so thumbnails load. For an upload-only event, set `GALLERY_PUBLIC = false` in Code.gs. If your Google Workspace blocks link sharing, uploads still work but thumbnails won't — turn on link sharing for that folder in the Admin console.
 - **Limits.** Apps Script handles roughly 20–30 simultaneous guests fine and a few thousand uploads per day on a Workspace account. 700 photos across a wedding is well within that.
+- **Editing.** After choosing photos, guests get a pop-out editor: seven looks (As shot, Golden, Harbor, Film, Vivid, Mono, Noir), Light / Contrast / Warmth sliders, rotate, and "Use on all". Holding the photo shows it as shot. Edits are baked into the JPEG that lands in Drive. Tweak or add looks in the `LOOKS` list near the top of the script in `upload.html`.
 - **Failed uploads.** If a photo doesn't send (bad signal), the guest gets a **Try again** button that resends only the ones that failed.
 - **Testing.** Open the upload link on your phone, add 3–4 photos, check they land in Drive and show in the gallery. An open gallery picks up new photos by itself about once a minute.

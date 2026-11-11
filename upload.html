@@ -31,7 +31,7 @@
   .pick:hover .btn { background: var(--white); border-color: var(--white); }
   .pick.over { background: var(--studio); outline-color: var(--ice); }
   .flow:has(#files:focus-visible) .pick { outline: 2px solid var(--steel); outline-offset: 3px; }
-  .pick .note { color: var(--ice); }
+  .pick .note { color: var(--ice); max-width: 34ch; }
   .pick .desk { display: none; }
   @media (hover: hover) and (pointer: fine) { .pick .desk { display: inline; } .pick .touch { display: none; } }
 
@@ -51,8 +51,8 @@
 
   .tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
   .tile { position: relative; aspect-ratio: 1; background: var(--harbor); overflow: hidden; }
-  .tile img { width: 100%; height: 100%; object-fit: cover; opacity: .4; transition: opacity var(--dur-slow) var(--ease-cut); }
-  .tile.done img { opacity: 1; }
+  .tile canvas { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .4; transition: opacity var(--dur-slow) var(--ease-cut); }
+  .tile.done canvas { opacity: 1; }
   .tile b {
     position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 6px;
     font: 600 9px/1.4 var(--font-display); letter-spacing: .2em; text-transform: uppercase;
@@ -60,10 +60,92 @@
   }
   .tile.done b { display: none; }
   .tile.error b { background: var(--ice); color: var(--midnight); }
-  .tile.error img { opacity: .2; }
+  .tile.error canvas { opacity: .2; }
 
   .missing { padding: clamp(48px, 9vw, 96px) 0 0; max-width: 560px; }
   .missing .btn { margin-top: 32px; }
+
+  /* ---------- Pop-out editor ---------- */
+  .editor {
+    padding: 0; border: 0; margin: 0; width: 100%; height: 100%; max-width: none; max-height: none;
+    background: var(--midnight); color: var(--ice);
+  }
+  .editor[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; animation: fade-in var(--dur-base) var(--ease-fade); }
+  .editor::backdrop { background: rgba(3, 31, 51, .72); }
+  @media (min-width: 900px) and (min-height: 620px) {
+    .editor { width: min(1120px, 94vw); height: min(800px, 92vh); margin: auto; border: 1px solid var(--border-on-dark); box-shadow: 0 24px 64px rgba(3, 31, 51, .28); }
+  }
+
+  .ed-bar {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px 20px; border-bottom: 1px solid var(--border-on-dark);
+  }
+  .ed-bar .btn { height: 40px; padding: 0 16px; font-size: 11px; }
+
+  .ed-body { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+  @media (min-width: 900px) {
+    .ed-body { grid-template-rows: none; grid-template-columns: minmax(0, 1fr) 340px; }
+    .ed-side { border-left: 1px solid var(--border-on-dark); overflow-y: auto; }
+  }
+
+  .ed-stage { position: relative; background: #021626; min-height: 200px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .ed-stage canvas { position: absolute; inset: 0; margin: auto; max-width: calc(100% - 24px); max-height: calc(100% - 24px); }
+  .ed-msg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; }
+  .ed-hint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 14px; pointer-events: none; }
+  .ed-compare {
+    position: absolute; top: 20px; left: 20px; padding: 6px 10px; background: var(--midnight-70);
+    font: 600 10px/1 var(--font-display); letter-spacing: .28em; text-transform: uppercase; color: var(--ice);
+  }
+
+  .ed-side { display: grid; align-content: start; gap: 14px; padding: 14px 0 8px; min-width: 0; }
+  .ed-strip { display: flex; gap: 6px; overflow-x: auto; padding: 2px 20px; scrollbar-width: none; }
+  .ed-strip::-webkit-scrollbar, .looks::-webkit-scrollbar { display: none; }
+  @media (min-width: 900px) { .ed-strip { flex-wrap: wrap; } }
+  .ed-strip button {
+    flex: none; width: 52px; height: 52px; padding: 0; border: 0; background: var(--harbor); cursor: pointer;
+    outline: 2px solid transparent; outline-offset: -2px; opacity: .55; transition: opacity var(--dur-fast);
+  }
+  .ed-strip button[aria-current="true"] { outline-color: var(--ice); opacity: 1; }
+  .ed-strip canvas, .look canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .ed-tabs { display: flex; gap: 28px; padding: 0 20px; border-bottom: 1px solid var(--border-on-dark); }
+  .ed-tabs button {
+    background: none; border: 0; padding: 10px 0 8px; margin-bottom: -1px; border-bottom: 2px solid transparent; cursor: pointer;
+    font: 600 11px/1 var(--font-display); letter-spacing: .28em; text-transform: uppercase; color: var(--haze);
+  }
+  .ed-tabs button[aria-selected="true"] { color: var(--white); border-bottom-color: var(--ice); }
+
+  .looks { display: flex; gap: 10px; overflow-x: auto; padding: 2px 20px 4px; scrollbar-width: none; }
+  @media (min-width: 900px) { .looks { display: grid; grid-template-columns: repeat(3, 1fr); overflow: visible; } .look { width: auto; } }
+  .look {
+    flex: none; width: 76px; display: grid; gap: 7px; padding: 0; border: 0; background: none; cursor: pointer; text-align: left;
+    font: 600 10px/1.2 var(--font-display); letter-spacing: .2em; text-transform: uppercase; color: var(--haze);
+  }
+  .look .sw { aspect-ratio: 1; background: var(--harbor); outline: 2px solid transparent; outline-offset: -2px; overflow: hidden; }
+  .look[aria-pressed="true"] { color: var(--white); }
+  .look[aria-pressed="true"] .sw { outline-color: var(--ice); }
+
+  .adjust { display: grid; gap: 14px; padding: 2px 20px; }
+  .slider { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 12px; }
+  .slider output { font: 400 15px/1 var(--font-text); color: var(--haze); min-width: 3ch; text-align: right; }
+  .range { grid-column: 1 / -1; -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 0; background: transparent; cursor: pointer; }
+  .range::-webkit-slider-runnable-track { height: 2px; background: var(--studio); }
+  .range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -8px; background: var(--ice); border: 0; border-radius: 0; }
+  .range::-moz-range-track { height: 2px; background: var(--studio); }
+  .range::-moz-range-thumb { width: 18px; height: 18px; background: var(--ice); border: 0; border-radius: 0; }
+
+  .ed-tools { display: flex; gap: 8px 22px; flex-wrap: wrap; padding: 0 20px; }
+  .text-btn {
+    background: none; border: 0; padding: 8px 0; cursor: pointer; color: var(--haze);
+    font: 600 11px/1.2 var(--font-display); letter-spacing: .28em; text-transform: uppercase;
+  }
+  .text-btn:hover { color: var(--white); }
+
+  .editor.no-edit .looks, .editor.no-edit .adjust, .editor.no-edit #edAll { opacity: .3; pointer-events: none; }
+
+  .ed-foot { display: flex; justify-content: flex-end; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border-on-dark); }
+  .ed-foot .btn { width: 100%; }
+  @media (min-width: 900px) { .ed-foot .btn { width: auto; } }
 </style>
 </head>
 <body>
@@ -82,10 +164,10 @@
 
 <main class="wrap">
   <section class="hero" id="hero">
-    <p class="eyebrow rise">Behind the scenes</p>
+    <p class="eyebrow rise">Guest photos</p>
     <h1 class="title rise d1" id="eventTitle">Share your photos</h1>
     <p class="title-meta" id="eventMeta" hidden></p>
-    <p class="lede rise d2">You caught moments we didn’t. Add them here and they go straight to the couple’s collection.</p>
+    <p class="lede rise d2">Send the couple what you shot today. Give each photo a look if you like, or leave it as shot.</p>
   </section>
 
   <section class="flow" id="flow" data-state="choose" aria-label="Add your photos">
@@ -98,8 +180,8 @@
       </div>
       <label class="pick panel-harbor" id="drop" for="files">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-        <span class="btn lg">Choose photos</span>
-        <span class="note"><span class="touch">Pick as many as you like from your camera roll.</span><span class="desk">Pick as many as you like, or drop them anywhere on this page.</span></span>
+        <span class="btn lg">Add photos</span>
+        <span class="note"><span class="touch">Choose from your camera roll. You can add a look before they send.</span><span class="desk">Choose photos or drop them anywhere on this page. You can add a look before they send.</span></span>
       </label>
     </div>
 
@@ -135,6 +217,52 @@
     <a class="btn" href="./">Enter an event code</a>
   </section>
 </main>
+
+<dialog class="editor" id="editor" aria-labelledby="edTitle">
+  <form class="ed-bar" method="dialog">
+    <span class="label" id="edTitle">Photo 1 of 1</span>
+    <button class="btn outline" value="cancel">Cancel</button>
+  </form>
+
+  <div class="ed-body">
+    <div class="ed-stage" id="edStage">
+      <canvas id="edCanvas" aria-label="Photo preview"></canvas>
+      <p class="ed-msg note" id="edMsg" hidden></p>
+      <span class="ed-compare" id="edCompare" hidden>As shot</span>
+      <p class="ed-hint note" id="edHint">Hold the photo to compare</p>
+    </div>
+
+    <div class="ed-side">
+      <div class="ed-strip" id="edStrip" aria-label="Your photos"></div>
+
+      <div class="ed-tabs" role="tablist">
+        <button type="button" role="tab" id="tabLooksBtn" aria-selected="true" aria-controls="tabLooks">Looks</button>
+        <button type="button" role="tab" id="tabAdjustBtn" aria-selected="false" aria-controls="tabAdjust">Adjust</button>
+      </div>
+
+      <div id="tabLooks" role="tabpanel" aria-labelledby="tabLooksBtn">
+        <div class="looks" id="looks"></div>
+      </div>
+
+      <div class="adjust" id="tabAdjust" role="tabpanel" aria-labelledby="tabAdjustBtn" hidden>
+        <div class="slider"><label class="label" for="adjLight">Light</label><output id="outLight">0</output><input class="range" id="adjLight" type="range" min="-100" max="100" value="0" data-key="light" data-out="outLight"></div>
+        <div class="slider"><label class="label" for="adjContrast">Contrast</label><output id="outContrast">0</output><input class="range" id="adjContrast" type="range" min="-100" max="100" value="0" data-key="contrast" data-out="outContrast"></div>
+        <div class="slider"><label class="label" for="adjWarmth">Warmth</label><output id="outWarmth">0</output><input class="range" id="adjWarmth" type="range" min="-100" max="100" value="0" data-key="warmth" data-out="outWarmth"></div>
+      </div>
+
+      <div class="ed-tools">
+        <button class="text-btn" id="edRotate" type="button">Rotate</button>
+        <button class="text-btn" id="edReset" type="button">Reset</button>
+        <button class="text-btn" id="edAll" type="button">Use on all</button>
+        <button class="text-btn" id="edRemove" type="button">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ed-foot">
+    <button class="btn lg" id="edSend" type="button">Send photos</button>
+  </div>
+</dialog>
 
 <footer class="site-footer">
   <span class="tagline">Every frame matters.</span>
@@ -172,19 +300,281 @@
     })
     .catch(() => {}); // keep the page usable even if the title lookup is slow
 
-  // ---------- Picking ----------
-  input.addEventListener('change', e => { start(e.target.files); e.target.value = ''; });
+  // ================= Looks and grading =================
+  // Each look is a small grade: b brightness, c contrast, s saturation, w warmth, f fade (lifted blacks), v vignette.
+  const LOOKS = [
+    { key: 'none',   name: 'As shot', b: 0,    c: 0,    s: 0,    w: 0,   f: 0,   v: 0 },
+    { key: 'golden', name: 'Golden',  b: .04,  c: .06,  s: .1,   w: .55, f: 0,   v: .15 },
+    { key: 'harbor', name: 'Harbor',  b: 0,    c: .1,   s: -.15, w: -.5, f: .08, v: .2 },
+    { key: 'film',   name: 'Film',    b: .03,  c: -.12, s: -.2,  w: .2,  f: .35, v: .15 },
+    { key: 'vivid',  name: 'Vivid',   b: .02,  c: .15,  s: .4,   w: 0,   f: 0,   v: 0 },
+    { key: 'mono',   name: 'Mono',    b: 0,    c: .08,  s: -1,   w: 0,   f: 0,   v: 0 },
+    { key: 'noir',   name: 'Noir',    b: -.04, c: .35,  s: -1,   w: 0,   f: 0,   v: .45 },
+  ];
+  const LOOK = Object.fromEntries(LOOKS.map(l => [l.key, l]));
+  const blankEdit = () => ({ look: 'none', light: 0, contrast: 0, warmth: 0, rot: 0 });
+
+  function gradeFor(edit) {
+    const L = LOOK[edit.look] || LOOK.none;
+    const g = { b: L.b + edit.light * .25, c: L.c + edit.contrast * .3, s: L.s, w: L.w + edit.warmth * .6, f: L.f, v: L.v };
+    return Object.values(g).some(Boolean) ? g : null;
+  }
+
+  function grade(img, g) {
+    const d = img.data, W = img.width, H = img.height;
+    const con = 1 + g.c, bri = 1 + g.b, lift = g.f * 70, sat = 1 + g.s;
+    const kr = 1 + g.w * .12, kg = 1 + g.w * .03, kb = 1 - g.w * .12;
+    const lut = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const y = ((i - 128) * con + 128) * bri; lut[i] = lift + y * (1 - lift / 255); }
+    const vig = g.v > 0;
+    let dx2, dy2;
+    if (vig) {
+      dx2 = new Float32Array(W); dy2 = new Float32Array(H);
+      for (let x = 0; x < W; x++) { const t = (x - (W - 1) / 2) / (W / 2); dx2[x] = t * t; }
+      for (let y = 0; y < H; y++) { const t = (y - (H - 1) / 2) / (H / 2); dy2[y] = t * t; }
+    }
+    const clampIdx = v => v < 0 ? 0 : v > 255 ? 255 : v | 0;
+    for (let y = 0, i = 0; y < H; y++) {
+      const ry = vig ? dy2[y] : 0;
+      for (let x = 0; x < W; x++, i += 4) {
+        let r = d[i], gr = d[i + 1], b = d[i + 2];
+        if (sat !== 1) {
+          const L = .2126 * r + .7152 * gr + .0722 * b;
+          r = L + (r - L) * sat; gr = L + (gr - L) * sat; b = L + (b - L) * sat;
+        }
+        r = lut[clampIdx(r * kr)]; gr = lut[clampIdx(gr * kg)]; b = lut[clampIdx(b * kb)];
+        if (vig) { const q = (dx2[x] + ry) * .5, m = 1 - g.v * q * q; r *= m; gr *= m; b *= m; }
+        d[i] = r; d[i + 1] = gr; d[i + 2] = b;
+      }
+    }
+  }
+
+  // Draw src into target (rotated, scaled to maxEdge), then apply the grade. Used for previews AND the uploaded file.
+  function paint(target, src, edit, maxEdge) {
+    const sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+    const k = Math.min(1, maxEdge / Math.max(sw, sh));
+    const w = Math.max(1, Math.round(sw * k)), h = Math.max(1, Math.round(sh * k));
+    const turn = edit.rot % 180 !== 0;
+    target.width = turn ? h : w; target.height = turn ? w : h;
+    const x = target.getContext('2d', { willReadFrequently: true });
+    x.save();
+    x.translate(target.width / 2, target.height / 2);
+    x.rotate(edit.rot * Math.PI / 180);
+    x.drawImage(src, -w / 2, -h / 2, w, h);
+    x.restore();
+    const g = gradeFor(edit);
+    if (g) {
+      const data = x.getImageData(0, 0, target.width, target.height);
+      grade(data, g);
+      x.putImageData(data, 0, 0);
+    }
+    return target;
+  }
+
+  function loadImage(file) {
+    return new Promise(res => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); res(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+      img.src = url;
+    });
+  }
+
+  // ================= Pop-out editor =================
+  const editor = $('editor'), edCanvas = $('edCanvas'), edStrip = $('edStrip');
+  const PREVIEW_EDGE = 1200, SMALL_EDGE = 200;
+  let batch = [], cur = 0, mid = null, selToken = 0, sendingBatch = false, comparing = false;
+
+  // Look swatches, built once
+  const lookBtns = LOOKS.map(l => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'look'; b.dataset.look = l.key;
+    b.innerHTML = '<span class="sw"><canvas></canvas></span>';
+    b.append(l.name);
+    b.addEventListener('click', () => { edit().look = l.key; changed(); });
+    $('looks').append(b);
+    return b;
+  });
+
+  const edit = () => batch[cur].edit;
+
+  function openEditor(fileList) {
+    const files = [...fileList].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
+    if (!files.length) return;
+    batch = files.map(file => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.append(document.createElement('canvas'));
+      const p = { file, edit: blankEdit(), small: null, ok: null, btn };
+      btn.addEventListener('click', () => select(batch.indexOf(p)));
+      return p;
+    });
+    edStrip.replaceChildren(...batch.map(p => p.btn));
+    sendingBatch = false;
+    showTab('looks');
+    editor.showModal();
+    document.documentElement.style.overflow = 'hidden';
+    select(0);
+    makeSmalls(batch);
+  }
+
+  // Small copies for the strip and the look swatches, made one at a time so phones don't run out of memory.
+  async function makeSmalls(forBatch) {
+    for (const p of forBatch) {
+      if (batch !== forBatch) return; // editor closed or reopened
+      if (p.small || p.ok === false) continue;
+      const img = await loadImage(p.file);
+      if (!img) { p.ok = false; continue; }
+      p.ok = true; p.small = paint(document.createElement('canvas'), img, blankEdit(), SMALL_EDGE);
+      drawThumb(p);
+      if (p === batch[cur]) drawLooks();
+    }
+  }
+
+  function drawThumb(p) { if (p.small) paint(p.btn.firstChild, p.small, p.edit, 120); }
+
+  function drawLooks() {
+    const p = batch[cur], src = p.small || mid;
+    lookBtns.forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.look === p.edit.look));
+      if (src) paint(b.querySelector('canvas'), src, { ...blankEdit(), look: b.dataset.look, rot: p.edit.rot }, 120);
+    });
+  }
+
+  async function select(i) {
+    cur = Math.max(0, Math.min(i, batch.length - 1));
+    const p = batch[cur], token = ++selToken;
+    updateChrome();
+    syncSliders();
+    mid = null;
+    edCanvas.hidden = true;
+    msg('Loading…');
+    const img = await loadImage(p.file);
+    if (token !== selToken) return;
+    if (!img) {
+      p.ok = false;
+      editor.classList.add('no-edit');
+      msg('This photo can’t be previewed on this device. It will send as shot.');
+      return;
+    }
+    p.ok = true;
+    editor.classList.remove('no-edit');
+    mid = paint(document.createElement('canvas'), img, blankEdit(), PREVIEW_EDGE);
+    if (!p.small) { p.small = paint(document.createElement('canvas'), mid, blankEdit(), SMALL_EDGE); drawThumb(p); }
+    msg('');
+    edCanvas.hidden = false;
+    drawPreview(); drawLooks();
+  }
+
+  function msg(text) { $('edMsg').textContent = text; $('edMsg').hidden = !text; $('edHint').hidden = !!text; }
+
+  let raf = 0;
+  function drawPreview() {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      if (!mid) return;
+      const e = comparing ? { ...blankEdit(), rot: edit().rot } : edit();
+      paint(edCanvas, mid, e, PREVIEW_EDGE);
+    });
+  }
+
+  function changed() {
+    drawPreview(); drawThumb(batch[cur]);
+    lookBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.look === edit().look)));
+  }
+
+  function updateChrome() {
+    const n = batch.length;
+    $('edTitle').textContent = n > 1 ? `Photo ${cur + 1} of ${n}` : 'Your photo';
+    $('edSend').textContent = n === 1 ? 'Send photo' : `Send ${n} photos`;
+    edStrip.hidden = n < 2;
+    $('edAll').hidden = n < 2;
+    batch.forEach((p, i) => {
+      p.btn.setAttribute('aria-current', String(i === cur));
+      p.btn.setAttribute('aria-label', `Photo ${i + 1}`);
+    });
+    batch[cur].btn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  // Adjust sliders
+  const sliders = [...document.querySelectorAll('.range')];
+  function syncSliders() {
+    sliders.forEach(r => { const v = Math.round(edit()[r.dataset.key] * 100); r.value = v; $(r.dataset.out).textContent = v > 0 ? '+' + v : v; });
+  }
+  sliders.forEach(r => r.addEventListener('input', () => {
+    const v = +r.value;
+    edit()[r.dataset.key] = v / 100;
+    $(r.dataset.out).textContent = v > 0 ? '+' + v : v;
+    changed();
+  }));
+  sliders.forEach(r => r.addEventListener('dblclick', () => { r.value = 0; r.dispatchEvent(new Event('input')); }));
+
+  function showTab(name) {
+    const looks = name === 'looks';
+    $('tabLooksBtn').setAttribute('aria-selected', String(looks));
+    $('tabAdjustBtn').setAttribute('aria-selected', String(!looks));
+    $('tabLooks').hidden = !looks; $('tabAdjust').hidden = looks;
+  }
+  $('tabLooksBtn').onclick = () => showTab('looks');
+  $('tabAdjustBtn').onclick = () => showTab('adjust');
+
+  $('edRotate').onclick = () => { edit().rot = (edit().rot + 90) % 360; changed(); drawLooks(); };
+  $('edReset').onclick = () => { batch[cur].edit = blankEdit(); syncSliders(); changed(); drawLooks(); };
+  $('edAll').onclick = () => {
+    const { look, light, contrast, warmth } = edit();
+    batch.forEach(p => { Object.assign(p.edit, { look, light, contrast, warmth }); drawThumb(p); });
+    const b = $('edAll'); b.textContent = `On all ${batch.length}`;
+    setTimeout(() => { b.textContent = 'Use on all'; }, 1600);
+  };
+  $('edRemove').onclick = () => {
+    batch.splice(cur, 1)[0].btn.remove();
+    if (!batch.length) { editor.close(); return; }
+    select(cur);
+  };
+
+  // Hold the photo to see it as shot
+  const stage = $('edStage');
+  const compare = on => { if (comparing === on || !mid) return; comparing = on; $('edCompare').hidden = !on; drawPreview(); };
+  stage.addEventListener('pointerdown', e => { if (e.button === 0) compare(true); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => stage.addEventListener(t, () => compare(false)));
+  stage.addEventListener('contextmenu', e => e.preventDefault());
+
+  // Swipe between photos on the preview
+  let sx = null;
+  stage.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  stage.addEventListener('touchend', e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) > 60 && batch.length > 1) { compare(false); select(cur + (dx < 0 ? 1 : -1)); }
+  });
+
+  $('edSend').onclick = () => {
+    sendingBatch = true;
+    const toSend = batch;
+    editor.close();
+    start(toSend);
+  };
+
+  editor.addEventListener('close', () => {
+    document.documentElement.style.overflow = '';
+    selToken++; comparing = false; $('edCompare').hidden = true;
+    batch = []; mid = null; edStrip.replaceChildren();
+    if (!sendingBatch && !jobs.length) flow.dataset.state = 'choose';
+  });
+
+  // ================= Picking =================
+  input.addEventListener('change', e => { openEditor(e.target.files); e.target.value = ''; });
   $('more').addEventListener('click', () => input.click());
   $('moreNow').addEventListener('click', () => input.click());
   $('retry').addEventListener('click', retry);
 
   // Drag and drop anywhere on the page (desktop)
   const dragging = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
-  ['dragenter', 'dragover'].forEach(t => addEventListener(t, e => { if (dragging(e)) { e.preventDefault(); drop.classList.add('over'); } }));
+  ['dragenter', 'dragover'].forEach(t => addEventListener(t, e => { if (dragging(e) && !editor.open) { e.preventDefault(); drop.classList.add('over'); } }));
   ['dragleave', 'drop'].forEach(t => addEventListener(t, () => drop.classList.remove('over')));
-  addEventListener('drop', e => { if (dragging(e)) { e.preventDefault(); start(e.dataTransfer.files); } });
+  addEventListener('drop', e => { if (dragging(e) && !editor.open) { e.preventDefault(); openEditor(e.dataTransfer.files); } });
 
-  // ---------- Queue ----------
+  // ================= Queue =================
   const jobs = [];
   let active = 0, wakeLock = null;
   const count = state => jobs.filter(j => j.state === state).length;
@@ -192,19 +582,18 @@
 
   addEventListener('beforeunload', e => { if (busy()) { e.preventDefault(); e.returnValue = ''; } });
 
-  function start(fileList) {
-    const files = [...fileList].filter(f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
-    if (!files.length) return;
+  function start(items) {
     try { localStorage.setItem('830-uploader', who.value.trim()); } catch (e) {}
-    files.forEach(file => {
-      const job = { file, state: 'waiting', tile: addTile() };
-      jobs.push(job); paint(job);
+    items.forEach(p => {
+      const job = { file: p.file, edit: p.ok === false ? blankEdit() : p.edit, state: 'waiting', tile: addTile() };
+      if (p.small) { paint(job.tile.firstChild, p.small, job.edit, 240); job.thumbed = true; }
+      jobs.push(job); paintTile(job);
     });
     run();
   }
 
   function retry() {
-    jobs.forEach(j => { if (j.state === 'error') { j.state = 'waiting'; paint(j); } });
+    jobs.forEach(j => { if (j.state === 'error') { j.state = 'waiting'; paintTile(j); } });
     run();
   }
 
@@ -219,9 +608,9 @@
     while (active < limit) {
       const job = jobs.find(j => j.state === 'waiting');
       if (!job) break;
-      active++; job.state = 'sending'; paint(job);
+      active++; job.state = 'sending'; paintTile(job);
       send(job).then(ok => {
-        job.state = ok ? 'done' : 'error'; paint(job);
+        job.state = ok ? 'done' : 'error'; paintTile(job);
         active--; update(); pump();
       });
     }
@@ -255,69 +644,39 @@
     }
   }
 
-  // Resize and re-encode in the browser so phone photos send fast.
+  // Resize, apply the guest's edit, and re-encode in the browser so phone photos send fast.
   async function prepare(job) {
     const file = job.file;
-    const url = URL.createObjectURL(file);
-    try {
-      const img = await loadImage(url);
-      const longest = Math.max(img.naturalWidth, img.naturalHeight);
-      if (!job.thumbed) { job.thumbed = true; thumb(job, img, longest); }
-      const full = draw(img, Math.min(1, C.MAX_EDGE / longest));
-      const blob = await toBlob(full, C.JPEG_QUALITY);
+    const img = await loadImage(file);
+    if (img) {
+      if (!job.thumbed) { job.thumbed = true; paint(job.tile.firstChild, img, job.edit, 240); }
+      const full = paint(document.createElement('canvas'), img, job.edit, C.MAX_EDGE);
+      const blob = await new Promise(res => full.toBlob(res, 'image/jpeg', C.JPEG_QUALITY));
       full.width = full.height = 0; // hand the memory back straight away
-      if (!blob) throw new Error('encode failed');
-      return { data: await toBase64(blob), mimeType: 'image/jpeg', name: file.name.replace(/\.[^.]+$/, '') + '.jpg' };
-    } catch (e) {
-      // Browser can't decode it (e.g. HEIC on some Android/desktop browsers): send the original.
-      const type = file.type || (/\.heif$/i.test(file.name) ? 'image/heif' : 'image/heic');
-      return { data: await toBase64(file), mimeType: type, name: file.name };
-    } finally {
-      URL.revokeObjectURL(url);
+      if (blob) return { data: await toBase64(blob), mimeType: 'image/jpeg', name: file.name.replace(/\.[^.]+$/, '') + '.jpg' };
     }
+    // Browser can't decode it (e.g. HEIC on some Android/desktop browsers): send the original.
+    const type = file.type || (/\.heif$/i.test(file.name) ? 'image/heif' : 'image/heic');
+    return { data: await toBase64(file), mimeType: type, name: file.name };
   }
 
-  function draw(img, scale) {
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas;
-  }
-
-  // Small preview for the tray, so a big batch doesn't hold every full-size photo in memory.
-  function thumb(job, img, longest) {
-    const small = draw(img, Math.min(1, 280 / longest));
-    toBlob(small, 0.7).then(blob => {
-      if (!blob) return;
-      const el = document.createElement('img');
-      el.alt = ''; el.src = URL.createObjectURL(blob);
-      job.tile.prepend(el);
-    });
-  }
-
-  const toBlob = (canvas, quality) => new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
-  const loadImage = url => new Promise((res, rej) => {
-    const img = new Image();
-    img.onload = () => res(img); img.onerror = rej; img.src = url;
-  });
   const toBase64 = blob => new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej;
     r.readAsDataURL(blob);
   });
 
-  // ---------- Display ----------
+  // ================= Display =================
   function addTile() {
     const tile = document.createElement('div');
     tile.className = 'tile';
-    tile.append(document.createElement('b'));
+    tile.append(document.createElement('canvas'), document.createElement('b'));
     $('tray').append(tile);
     return tile;
   }
 
   const LABELS = { waiting: 'Waiting', sending: 'Sending', done: 'Sent', error: 'Not sent' };
-  function paint(job) {
+  function paintTile(job) {
     job.tile.className = 'tile ' + job.state;
     job.tile.querySelector('b').textContent = LABELS[job.state];
   }
